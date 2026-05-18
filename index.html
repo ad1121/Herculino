@@ -3,509 +3,879 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>Controle Financeiro</title>
-
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #4f8ef7;
+      --accent2: #7c5cfc;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --text: #e8eaf6;
+      --muted: #7b82a0;
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
 
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* BACKGROUND GRID */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(79,142,247,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79,142,247,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* LAYOUT */
+    .app { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 20px 16px 80px; }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .header-left h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(22px, 5vw, 32px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .header-left p { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    /* BUTTONS */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(79,142,247,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(79,142,247,0.4); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+    .btn-danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .btn-danger:hover { background: rgba(239,68,68,0.25); }
+    .btn-success { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+    .btn-success:hover { background: rgba(34,197,94,0.25); }
+    .btn-warning { background: rgba(245,158,11,0.15); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+    .btn-warning:hover { background: rgba(245,158,11,0.25); }
+
+    /* CARDS DE RESUMO */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    @media(max-width: 600px) { .summary-grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: rgba(79,142,247,0.3); }
+
+    .summary-card { position: relative; overflow: hidden; }
+    .summary-card::after {
+      content: '';
+      position: absolute;
+      top: -20px; right: -20px;
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      opacity: 0.12;
+    }
+    .summary-card.entrada::after { background: var(--green); }
+    .summary-card.saida::after { background: var(--red); }
+    .summary-card.saldo::after { background: var(--accent); }
+
+    .summary-label { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .summary-value { font-family: 'Syne', sans-serif; font-size: clamp(20px, 4vw, 28px); font-weight: 700; margin-top: 6px; }
+    .summary-card.entrada .summary-value { color: var(--green); }
+    .summary-card.saida .summary-value { color: var(--red); }
+    .summary-card.saldo .summary-value { color: var(--accent); }
+    .summary-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* MAIN GRID */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+    }
+    @media(max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+    /* PANEL */
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .panel-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 17px; margin-bottom: 16px; }
+
+    /* TOOLBAR */
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+    .search-box {
+      flex: 1;
+      min-width: 160px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-box:focus { border-color: var(--accent); }
+    .search-box::placeholder { color: var(--muted); }
+
+    .filter-select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      cursor: pointer;
+    }
+    .filter-select:focus { border-color: var(--accent); }
+
+    /* TABELA */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; min-width: 540px; }
+    th {
+      text-align: left;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td { padding: 12px 8px; border-bottom: 1px solid rgba(46,51,80,0.5); font-size: 13px; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* PAGO BADGE */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-entrada { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+    .badge-saida { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+    .badge-pago { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+    .badge-pendente { background: rgba(245,158,11,0.15); color: var(--yellow); border: 1px solid rgba(245,158,11,0.2); }
+
+    .valor-text { font-weight: 600; font-family: 'Syne', sans-serif; font-size: 13px; }
+    .valor-entrada { color: var(--green); }
+    .valor-saida { color: var(--red); }
+
+    .parcel-tag {
+      font-size: 10px;
+      color: var(--muted);
+      background: var(--surface2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; }
+    .modal-close { background: var(--surface2); border: none; color: var(--muted); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 16px; transition: color 0.2s; }
+    .modal-close:hover { color: var(--text); }
+
+    /* FORM */
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+    .form-input, .form-select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--accent); }
+    .form-input::placeholder { color: var(--muted); }
+    .form-select option { background: var(--surface2); }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media(max-width: 420px) { .form-row { grid-template-columns: 1fr; } }
+
+    /* PARCELAS */
+    .parcelas-section {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .parcelas-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .parcelas-toggle { cursor: pointer; }
+    .parcelas-toggle input { accent-color: var(--accent); }
+    .parcelas-toggle label { font-size: 13px; font-weight: 500; cursor: pointer; }
+
+    /* GRÁFICO */
+    .chart-wrap { position: relative; max-width: 200px; margin: 0 auto 20px; }
+
+    /* STATS */
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(46,51,80,0.5);
+      font-size: 13px;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { color: var(--muted); }
+    .stat-value { font-weight: 600; font-family: 'Syne', sans-serif; }
+
+    /* PENDING SECTION */
+    .pending-list { margin-top: 12px; }
+    .pending-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: rgba(245,158,11,0.06);
+      border: 1px solid rgba(245,158,11,0.15);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .pending-item-info { display: flex; flex-direction: column; gap: 2px; }
+    .pending-item-name { font-weight: 500; }
+    .pending-item-val { color: var(--red); font-weight: 600; font-family: 'Syne', sans-serif; font-size: 12px; }
+
+    /* EMPTY */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty-state .icon { font-size: 36px; margin-bottom: 10px; opacity: 0.4; }
+    .empty-state p { font-size: 13px; }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 24px; right: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
+      font-size: 13px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      z-index: 999;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s;
+      max-width: 280px;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-color: rgba(34,197,94,0.4); color: var(--green); }
+    .toast.error { border-color: rgba(239,68,68,0.4); color: var(--red); }
+
+    /* MOBILE NAV */
+    .mobile-fab {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      color: white;
+      font-size: 24px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(79,142,247,0.4);
+      z-index: 50;
+    }
+    @media(max-width: 600px) {
+      .mobile-fab { display: flex; }
+      .btn-primary.desktop-only { display: none; }
+    }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* CATEGORIA CHIP */
+    .cat-chip {
+      background: rgba(79,142,247,0.1);
+      color: #7eb3ff;
+      border: 1px solid rgba(79,142,247,0.2);
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .actions-cell { display: flex; gap: 4px; flex-wrap: wrap; }
+  </style>
 </head>
+<body>
 
-<body class="bg-slate-100 min-h-screen">
+<div class="app">
 
-  <div class="max-w-7xl mx-auto p-4 md:p-6">
-
-    <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-
-      <div>
-        <h1 class="text-3xl font-bold text-slate-800">
-          Controle Financeiro
-        </h1>
-
-        <p class="text-slate-500">
-          Entradas, saídas e sincronização com Google Sheets
-        </p>
-      </div>
-
-      <button
-        onclick="abrirModal()"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold shadow-lg"
-      >
-        + Novo Lançamento
-      </button>
-
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h1>💰 Controle Financeiro</h1>
+      <p>Entradas, saídas, parcelas e sincronização com Google Sheets</p>
     </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-
-      <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-green-500">
-        <p class="text-slate-500 text-sm">Entradas</p>
-
-        <h2 id="totalEntradas" class="text-3xl font-bold text-green-600 mt-2">
-          R$ 0,00
-        </h2>
-      </div>
-
-      <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-red-500">
-        <p class="text-slate-500 text-sm">Saídas</p>
-
-        <h2 id="totalSaidas" class="text-3xl font-bold text-red-600 mt-2">
-          R$ 0,00
-        </h2>
-      </div>
-
-      <div class="bg-white rounded-2xl shadow p-5 border-l-4 border-blue-500">
-        <p class="text-slate-500 text-sm">Saldo Atual</p>
-
-        <h2 id="saldoAtual" class="text-3xl font-bold text-blue-600 mt-2">
-          R$ 0,00
-        </h2>
-      </div>
-
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-      <div class="lg:col-span-2 bg-white rounded-2xl shadow p-5">
-
-        <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
-
-          <h2 class="text-xl font-bold">
-            Movimentações
-          </h2>
-
-          <input
-            type="text"
-            id="filtro"
-            placeholder="Buscar descrição..."
-            class="border rounded-xl px-4 py-2 w-full md:w-72"
-            onkeyup="renderizarTabela()"
-          >
-
-        </div>
-
-        <div class="overflow-x-auto">
-
-          <table class="w-full text-sm">
-
-            <thead>
-
-              <tr class="border-b">
-
-                <th class="text-left py-3">Data</th>
-                <th class="text-left py-3">Descrição</th>
-                <th class="text-left py-3">Categoria</th>
-                <th class="text-left py-3">Tipo</th>
-                <th class="text-left py-3">Valor</th>
-                <th class="text-center py-3">Ações</th>
-
-              </tr>
-
-            </thead>
-
-            <tbody id="tabelaLancamentos"></tbody>
-
-          </table>
-
-        </div>
-
-      </div>
-
-      <div class="bg-white rounded-2xl shadow p-5">
-
-        <h2 class="text-xl font-bold mb-4">
-          Resumo Financeiro
-        </h2>
-
-        <canvas id="grafico"></canvas>
-
-        <div class="mt-6 space-y-3 text-sm">
-
-          <div class="flex justify-between">
-            <span>Total de registros</span>
-            <span id="qtdRegistros" class="font-bold">0</span>
-          </div>
-
-          <div class="flex justify-between">
-            <span>Última atualização</span>
-            <span id="ultimaAtualizacao" class="font-bold">-</span>
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-
+    <button class="btn btn-primary desktop-only" onclick="abrirModal()">+ Novo Lançamento</button>
   </div>
 
-  <!-- MODAL -->
+  <!-- RESUMO -->
+  <div class="summary-grid">
+    <div class="card summary-card entrada">
+      <div class="summary-label">Entradas</div>
+      <div class="summary-value" id="totalEntradas">R$ 0,00</div>
+      <div class="summary-sub" id="qtdEntradas">0 lançamentos</div>
+    </div>
+    <div class="card summary-card saida">
+      <div class="summary-label">Saídas</div>
+      <div class="summary-value" id="totalSaidas">R$ 0,00</div>
+      <div class="summary-sub" id="qtdSaidas">0 lançamentos</div>
+    </div>
+    <div class="card summary-card saldo">
+      <div class="summary-label">Saldo Atual</div>
+      <div class="summary-value" id="saldoAtual">R$ 0,00</div>
+      <div class="summary-sub" id="pendenteSub">R$ 0,00 pendente</div>
+    </div>
+  </div>
 
-  <div
-    id="modal"
-    class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50"
-  >
+  <!-- MAIN -->
+  <div class="main-grid">
 
-    <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl">
+    <!-- TABELA -->
+    <div class="panel">
+      <div class="panel-title">Movimentações</div>
 
-      <div class="flex justify-between items-center mb-5">
-
-        <h2 class="text-2xl font-bold">
-          Novo Lançamento
-        </h2>
-
-        <button
-          onclick="fecharModal()"
-          class="text-slate-500 text-xl"
-        >
-          ✕
-        </button>
-
+      <div class="toolbar">
+        <input type="text" id="filtro" placeholder="🔍 Buscar..." class="search-box" oninput="renderizarTabela()">
+        <select id="filtroTipo" class="filter-select" onchange="renderizarTabela()">
+          <option value="">Todos os tipos</option>
+          <option value="entrada">Entradas</option>
+          <option value="saida">Saídas</option>
+        </select>
+        <select id="filtroStatus" class="filter-select" onchange="renderizarTabela()">
+          <option value="">Todos os status</option>
+          <option value="pago">Pagos</option>
+          <option value="pendente">Pendentes</option>
+        </select>
       </div>
 
-      <div class="space-y-4">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Descrição</th>
+              <th>Categoria</th>
+              <th>Tipo</th>
+              <th>Valor</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaLancamentos"></tbody>
+        </table>
+        <div id="emptyState" class="empty-state" style="display:none">
+          <div class="icon">📂</div>
+          <p>Nenhum lançamento encontrado</p>
+        </div>
+      </div>
+    </div>
 
-        <input
-          id="descricao"
-          type="text"
-          placeholder="Descrição"
-          class="w-full border rounded-xl px-4 py-3"
-        >
+    <!-- SIDEBAR -->
+    <div style="display:flex; flex-direction:column; gap:16px;">
 
-        <input
-          id="valor"
-          type="number"
-          step="0.01"
-          placeholder="Valor"
-          class="w-full border rounded-xl px-4 py-3"
-        >
+      <!-- GRÁFICO -->
+      <div class="panel">
+        <div class="panel-title">Resumo Visual</div>
+        <div class="chart-wrap">
+          <canvas id="grafico"></canvas>
+        </div>
+        <div>
+          <div class="stat-row">
+            <span class="stat-label">Total de registros</span>
+            <span class="stat-value" id="qtdRegistros">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Contas pagas</span>
+            <span class="stat-value" style="color:var(--green)" id="qtdPagas">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Pendentes</span>
+            <span class="stat-value" style="color:var(--yellow)" id="qtdPendentes">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Última atualização</span>
+            <span class="stat-value" id="ultimaAtualizacao" style="font-size:11px">-</span>
+          </div>
+        </div>
+      </div>
 
-        <input
-          id="data"
-          type="date"
-          class="w-full border rounded-xl px-4 py-3"
-        >
+      <!-- PENDENTES -->
+      <div class="panel" id="panelPendentes">
+        <div class="panel-title">⚠️ Contas Pendentes</div>
+        <div class="pending-list" id="listaPendentes">
+          <div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">Nenhuma conta pendente</div>
+        </div>
+      </div>
 
-        <input
-          id="categoria"
-          type="text"
-          placeholder="Categoria"
-          class="w-full border rounded-xl px-4 py-3"
-        >
+    </div>
+  </div>
+</div>
 
-        <select
-          id="tipo"
-          class="w-full border rounded-xl px-4 py-3"
-        >
+<!-- FAB MOBILE -->
+<button class="mobile-fab" onclick="abrirModal()">+</button>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Novo Lançamento</div>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <input id="descricao" type="text" placeholder="Ex: Conta de luz" class="form-input">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Valor (R$)</label>
+        <input id="valor" type="number" step="0.01" min="0" placeholder="0,00" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data</label>
+        <input id="data" type="date" class="form-input">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Categoria</label>
+        <input id="categoria" type="text" list="cats" placeholder="Ex: Moradia" class="form-input">
+        <datalist id="cats">
+          <option value="Moradia"><option value="Alimentação"><option value="Transporte">
+          <option value="Saúde"><option value="Lazer"><option value="Educação">
+          <option value="Salário"><option value="Freelance"><option value="Investimento">
+          <option value="Outros">
+        </datalist>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select id="tipo" class="form-select" onchange="atualizarTipoStatus()">
           <option value="entrada">Entrada</option>
           <option value="saida">Saída</option>
         </select>
-
-        <button
-          onclick="salvarLancamento()"
-          class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold"
-        >
-          Salvar Lançamento
-        </button>
-
       </div>
-
     </div>
 
+    <!-- STATUS -->
+    <div class="form-group" id="statusGroup">
+      <label class="form-label">Status</label>
+      <select id="status" class="form-select">
+        <option value="pago">Pago / Recebido</option>
+        <option value="pendente">Pendente</option>
+      </select>
+    </div>
+
+    <!-- PARCELAS -->
+    <div class="parcelas-section">
+      <div class="parcelas-header">
+        <div class="parcelas-toggle">
+          <input type="checkbox" id="toggleParcelas" onchange="toggleParcelas()">
+          <label for="toggleParcelas">Parcelar compra</label>
+        </div>
+      </div>
+      <div id="parcelasOpts" style="display:none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nº de Parcelas</label>
+            <input id="numParcelas" type="number" min="2" max="60" value="2" class="form-input" oninput="atualizarPreviewParcelas()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Valor por Parcela</label>
+            <input id="valorParcela" type="text" class="form-input" readonly style="opacity:0.6">
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);">
+          💡 Cada parcela será criada como um lançamento separado
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="salvarLancamento()">
+      Salvar Lançamento
+    </button>
   </div>
+</div>
 
-  <script>
+<script>
+  let lancamentos = JSON.parse(localStorage.getItem('lancamentos')) || [];
+  let grafico;
 
-    let lancamentos = JSON.parse(localStorage.getItem('lancamentos')) || [];
+  // ─── MODAL ───────────────────────────────────────
+  function abrirModal() {
+    document.getElementById('modal').classList.add('open');
+    // Data de hoje como default
+    document.getElementById('data').value = new Date().toISOString().split('T')[0];
+  }
+  function fecharModal() {
+    document.getElementById('modal').classList.remove('open');
+    resetForm();
+  }
+  function resetForm() {
+    ['descricao','valor','categoria'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('data').value = '';
+    document.getElementById('tipo').value = 'entrada';
+    document.getElementById('status').value = 'pago';
+    document.getElementById('toggleParcelas').checked = false;
+    document.getElementById('numParcelas').value = 2;
+    document.getElementById('parcelasOpts').style.display = 'none';
+    document.getElementById('valorParcela').value = '';
+  }
 
-    let grafico;
+  function atualizarTipoStatus() {
+    const tipo = document.getElementById('tipo').value;
+    const statusSel = document.getElementById('status');
+    if (tipo === 'entrada') {
+      statusSel.options[0].text = 'Recebido';
+      statusSel.options[1].text = 'A Receber';
+    } else {
+      statusSel.options[0].text = 'Pago';
+      statusSel.options[1].text = 'Pendente';
+    }
+  }
 
-    function abrirModal() {
+  // ─── PARCELAS ─────────────────────────────────────
+  function toggleParcelas() {
+    const show = document.getElementById('toggleParcelas').checked;
+    document.getElementById('parcelasOpts').style.display = show ? 'block' : 'none';
+    if (show) atualizarPreviewParcelas();
+  }
+  function atualizarPreviewParcelas() {
+    const val = parseFloat(document.getElementById('valor').value) || 0;
+    const n = parseInt(document.getElementById('numParcelas').value) || 2;
+    if (val > 0 && n > 1) {
+      document.getElementById('valorParcela').value = 'R$ ' + (val / n).toFixed(2).replace('.', ',');
+    }
+  }
+  document.getElementById('valor').addEventListener('input', () => {
+    if (document.getElementById('toggleParcelas').checked) atualizarPreviewParcelas();
+  });
 
-      document.getElementById('modal').classList.remove('hidden');
-      document.getElementById('modal').classList.add('flex');
+  // ─── SALVAR ───────────────────────────────────────
+  function salvarLancamento() {
+    const descricao = document.getElementById('descricao').value.trim();
+    const valor = parseFloat(document.getElementById('valor').value);
+    const data = document.getElementById('data').value;
+    const categoria = document.getElementById('categoria').value.trim();
+    const tipo = document.getElementById('tipo').value;
+    const status = document.getElementById('status').value;
+    const parcelar = document.getElementById('toggleParcelas').checked;
+    const numParcelas = parseInt(document.getElementById('numParcelas').value) || 1;
 
+    if (!descricao || !valor || !data || !categoria) {
+      toast('Preencha todos os campos.', 'error'); return;
     }
 
-    function fecharModal() {
+    if (parcelar && numParcelas >= 2) {
+      const valorParcela = parseFloat((valor / numParcelas).toFixed(2));
+      const baseDate = new Date(data + 'T12:00:00');
 
-      document.getElementById('modal').classList.remove('flex');
-      document.getElementById('modal').classList.add('hidden');
+      for (let i = 0; i < numParcelas; i++) {
+        const parcDate = new Date(baseDate);
+        parcDate.setMonth(parcDate.getMonth() + i);
+        const dateStr = parcDate.toISOString().split('T')[0];
 
-    }
-
-    function salvarLancamento() {
-
-      const descricao = document.getElementById('descricao').value;
-      const valor = parseFloat(document.getElementById('valor').value);
-      const data = document.getElementById('data').value;
-      const categoria = document.getElementById('categoria').value;
-      const tipo = document.getElementById('tipo').value;
-
-      if (!descricao || !valor || !data || !categoria) {
-
-        alert('Preencha todos os campos.');
-        return;
-
+        const novo = {
+          id: Date.now() + i,
+          descricao: `${descricao} (${i+1}/${numParcelas})`,
+          valor: valorParcela,
+          data: dateStr,
+          categoria,
+          tipo,
+          status: i === 0 ? status : 'pendente',
+          parcela: `${i+1}/${numParcelas}`
+        };
+        lancamentos.push(novo);
+        sincronizarGoogleSheets(novo);
       }
-
-      const novo = {
-
-        id: Date.now(),
-        descricao,
-        valor,
-        data,
-        categoria,
-        tipo
-
-      };
-
+      toast(`${numParcelas} parcelas criadas com sucesso!`, 'success');
+    } else {
+      const novo = { id: Date.now(), descricao, valor, data, categoria, tipo, status };
       lancamentos.push(novo);
-
-      localStorage.setItem(
-        'lancamentos',
-        JSON.stringify(lancamentos)
-      );
-
       sincronizarGoogleSheets(novo);
-
-      renderizarTabela();
-      atualizarResumo();
-      atualizarGrafico();
-
-      fecharModal();
-
-      document.getElementById('descricao').value = '';
-      document.getElementById('valor').value = '';
-      document.getElementById('data').value = '';
-      document.getElementById('categoria').value = '';
-
+      toast('Lançamento salvo!', 'success');
     }
 
-    function renderizarTabela() {
-
-      const tabela = document.getElementById('tabelaLancamentos');
-
-      const filtro = document
-        .getElementById('filtro')
-        .value
-        .toLowerCase();
-
-      tabela.innerHTML = '';
-
-      const filtrados = lancamentos.filter(item =>
-        item.descricao.toLowerCase().includes(filtro)
-      );
-
-      filtrados.reverse().forEach(item => {
-
-        tabela.innerHTML += `
-          <tr class="border-b hover:bg-slate-50">
-
-            <td class="py-3">
-              ${formatarData(item.data)}
-            </td>
-
-            <td class="py-3">
-              ${item.descricao}
-            </td>
-
-            <td class="py-3">
-              ${item.categoria}
-            </td>
-
-            <td class="py-3">
-
-              <span class="
-                px-3 py-1 rounded-full text-white text-xs
-                ${item.tipo === 'entrada'
-                  ? 'bg-green-500'
-                  : 'bg-red-500'}
-              ">
-
-                ${item.tipo}
-
-              </span>
-
-            </td>
-
-            <td class="
-              py-3 font-bold
-              ${item.tipo === 'entrada'
-                ? 'text-green-600'
-                : 'text-red-600'}
-            ">
-
-              R$ ${item.valor.toFixed(2)}
-
-            </td>
-
-            <td class="py-3 text-center">
-
-              <button
-                onclick="removerLancamento(${item.id})"
-                class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-xs"
-              >
-                Excluir
-              </button>
-
-            </td>
-
-          </tr>
-        `;
-
-      });
-
-    }
-
-    function removerLancamento(id) {
-
-      if (!confirm('Deseja remover este lançamento?')) {
-        return;
-      }
-
-      lancamentos = lancamentos.filter(
-        item => item.id !== id
-      );
-
-      localStorage.setItem(
-        'lancamentos',
-        JSON.stringify(lancamentos)
-      );
-
-      renderizarTabela();
-      atualizarResumo();
-      atualizarGrafico();
-
-    }
-
-    function atualizarResumo() {
-
-      const entradas = lancamentos
-        .filter(item => item.tipo === 'entrada')
-        .reduce((acc, item) => acc + item.valor, 0);
-
-      const saidas = lancamentos
-        .filter(item => item.tipo === 'saida')
-        .reduce((acc, item) => acc + item.valor, 0);
-
-      const saldo = entradas - saidas;
-
-      document.getElementById('totalEntradas').innerText =
-        formatarMoeda(entradas);
-
-      document.getElementById('totalSaidas').innerText =
-        formatarMoeda(saidas);
-
-      document.getElementById('saldoAtual').innerText =
-        formatarMoeda(saldo);
-
-      document.getElementById('qtdRegistros').innerText =
-        lancamentos.length;
-
-      document.getElementById('ultimaAtualizacao').innerText =
-        new Date().toLocaleString('pt-BR');
-
-    }
-
-    function atualizarGrafico() {
-
-      const entradas = lancamentos
-        .filter(item => item.tipo === 'entrada')
-        .reduce((acc, item) => acc + item.valor, 0);
-
-      const saidas = lancamentos
-        .filter(item => item.tipo === 'saida')
-        .reduce((acc, item) => acc + item.valor, 0);
-
-      const ctx = document.getElementById('grafico');
-
-      if (grafico) {
-        grafico.destroy();
-      }
-
-      grafico = new Chart(ctx, {
-
-        type: 'doughnut',
-
-        data: {
-
-          labels: ['Entradas', 'Saídas'],
-
-          datasets: [{
-
-            data: [entradas, saidas]
-
-          }]
-
-        },
-
-        options: {
-
-          responsive: true,
-          maintainAspectRatio: true
-
-        }
-
-      });
-
-    }
-
-    function formatarMoeda(valor) {
-
-      return valor.toLocaleString('pt-BR', {
-
-        style: 'currency',
-        currency: 'BRL'
-
-      });
-
-    }
-
-    function formatarData(data) {
-
-      return new Date(data).toLocaleDateString('pt-BR');
-
-    }
-
-    async function sincronizarGoogleSheets(dados) {
-
-      const WEBHOOK_URL =
-      'https://script.google.com/macros/s/AKfycbzFuFWYwZyEIvaEUyF8xbBymzTaLOofnx5JUk4hbvMZhRH3yMYjTCFj4F12OLaoWosJjw/exec';
-
-      try {
-
-        await fetch(WEBHOOK_URL, {
-
-          method: 'POST',
-
-          mode: 'no-cors',
-
-          headers: {
-            'Content-Type': 'application/json'
-          },
-
-          body: JSON.stringify(dados)
-
-        });
-
-        alert('Dados enviados para Google Sheets');
-
-      } catch (erro) {
-
-        console.error('Erro:', erro);
-
-        alert('Erro ao sincronizar');
-
-      }
-
-    }
-
+    salvarLocal();
     renderizarTabela();
     atualizarResumo();
     atualizarGrafico();
+    fecharModal();
+  }
 
-  </script>
+  // ─── PAGAR / PENDENTE ─────────────────────────────
+  function toggleStatus(id) {
+    const item = lancamentos.find(i => i.id === id);
+    if (!item) return;
+    item.status = item.status === 'pago' ? 'pendente' : 'pago';
+    salvarLocal();
+    renderizarTabela();
+    atualizarResumo();
+    atualizarGrafico();
+    toast(item.status === 'pago' ? 'Marcado como pago ✓' : 'Marcado como pendente', item.status === 'pago' ? 'success' : 'error');
+  }
 
+  function removerLancamento(id) {
+    if (!confirm('Deseja remover este lançamento?')) return;
+    lancamentos = lancamentos.filter(i => i.id !== id);
+    salvarLocal();
+    renderizarTabela();
+    atualizarResumo();
+    atualizarGrafico();
+    toast('Lançamento removido.', 'error');
+  }
+
+  function salvarLocal() {
+    localStorage.setItem('lancamentos', JSON.stringify(lancamentos));
+  }
+
+  // ─── RENDERIZAR TABELA ────────────────────────────
+  function renderizarTabela() {
+    const tabela = document.getElementById('tabelaLancamentos');
+    const filtro = document.getElementById('filtro').value.toLowerCase();
+    const filtroTipo = document.getElementById('filtroTipo').value;
+    const filtroStatus = document.getElementById('filtroStatus').value;
+
+    let filtrados = lancamentos
+      .filter(i => i.descricao.toLowerCase().includes(filtro))
+      .filter(i => filtroTipo ? i.tipo === filtroTipo : true)
+      .filter(i => filtroStatus ? (i.status || 'pago') === filtroStatus : true)
+      .slice().reverse();
+
+    const empty = document.getElementById('emptyState');
+    if (filtrados.length === 0) {
+      tabela.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    tabela.innerHTML = filtrados.map(item => {
+      const st = item.status || 'pago';
+      return `
+      <tr>
+        <td style="white-space:nowrap;color:var(--muted);font-size:12px">${formatarData(item.data)}</td>
+        <td>
+          <span style="font-weight:500">${item.descricao}</span>
+          ${item.parcela ? `<span class="parcel-tag">Parcela ${item.parcela}</span>` : ''}
+        </td>
+        <td><span class="cat-chip">${item.categoria}</span></td>
+        <td><span class="badge badge-${item.tipo}">${item.tipo}</span></td>
+        <td><span class="valor-text valor-${item.tipo}">R$ ${item.valor.toFixed(2).replace('.',',')}</span></td>
+        <td><span class="badge badge-${st}">${st === 'pago' ? '✓ Pago' : '⏳ Pendente'}</span></td>
+        <td>
+          <div class="actions-cell">
+            <button class="btn btn-sm ${st === 'pago' ? 'btn-warning' : 'btn-success'}" onclick="toggleStatus(${item.id})">
+              ${st === 'pago' ? 'Pendente' : 'Pagar'}
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="removerLancamento(${item.id})">✕</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ─── RESUMO ───────────────────────────────────────
+  function atualizarResumo() {
+    const entradas = lancamentos.filter(i => i.tipo === 'entrada' && (i.status || 'pago') === 'pago').reduce((a,i)=>a+i.valor,0);
+    const saidas   = lancamentos.filter(i => i.tipo === 'saida'   && (i.status || 'pago') === 'pago').reduce((a,i)=>a+i.valor,0);
+    const pendente = lancamentos.filter(i => i.tipo === 'saida'   && (i.status || 'pago') === 'pendente').reduce((a,i)=>a+i.valor,0);
+
+    const qE = lancamentos.filter(i => i.tipo === 'entrada').length;
+    const qS = lancamentos.filter(i => i.tipo === 'saida').length;
+    const qPagas = lancamentos.filter(i => (i.status||'pago') === 'pago').length;
+    const qPend  = lancamentos.filter(i => (i.status||'pago') === 'pendente').length;
+
+    document.getElementById('totalEntradas').textContent = moeda(entradas);
+    document.getElementById('totalSaidas').textContent   = moeda(saidas);
+    document.getElementById('saldoAtual').textContent    = moeda(entradas - saidas);
+    document.getElementById('qtdEntradas').textContent   = `${qE} lançamento${qE!==1?'s':''}`;
+    document.getElementById('qtdSaidas').textContent     = `${qS} lançamento${qS!==1?'s':''}`;
+    document.getElementById('pendenteSub').textContent   = `${moeda(pendente)} pendente`;
+    document.getElementById('qtdRegistros').textContent  = lancamentos.length;
+    document.getElementById('qtdPagas').textContent      = qPagas;
+    document.getElementById('qtdPendentes').textContent  = qPend;
+    document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleString('pt-BR');
+
+    // Lista de pendentes
+    const pends = lancamentos.filter(i => (i.status||'pago') === 'pendente').slice(-5).reverse();
+    const lista = document.getElementById('listaPendentes');
+    if (pends.length === 0) {
+      lista.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">Nenhuma conta pendente ✓</div>';
+    } else {
+      lista.innerHTML = pends.map(p => `
+        <div class="pending-item">
+          <div class="pending-item-info">
+            <span class="pending-item-name">${p.descricao}</span>
+            <span style="font-size:11px;color:var(--muted)">${formatarData(p.data)}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+            <span class="pending-item-val">R$ ${p.valor.toFixed(2).replace('.',',')}</span>
+            <button class="btn btn-sm btn-success" onclick="toggleStatus(${p.id})">Pagar</button>
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  // ─── GRÁFICO ──────────────────────────────────────
+  function atualizarGrafico() {
+    const e = lancamentos.filter(i=>i.tipo==='entrada'&&(i.status||'pago')==='pago').reduce((a,i)=>a+i.valor,0);
+    const s = lancamentos.filter(i=>i.tipo==='saida'  &&(i.status||'pago')==='pago').reduce((a,i)=>a+i.valor,0);
+    const p = lancamentos.filter(i=>i.tipo==='saida'  &&(i.status||'pago')==='pendente').reduce((a,i)=>a+i.valor,0);
+
+    if (grafico) grafico.destroy();
+    grafico = new Chart(document.getElementById('grafico'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Entradas', 'Saídas Pagas', 'Pendentes'],
+        datasets: [{
+          data: [e||0.01, s||0, p||0],
+          backgroundColor: ['rgba(34,197,94,0.8)','rgba(239,68,68,0.8)','rgba(245,158,11,0.8)'],
+          borderColor: ['#22c55e','#ef4444','#f59e0b'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        cutout: '65%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#7b82a0', font: { size: 11 }, boxWidth: 10, padding: 12 }
+          }
+        }
+      }
+    });
+  }
+
+  // ─── GOOGLE SHEETS ────────────────────────────────
+  async function sincronizarGoogleSheets(dados) {
+    const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzFuFWYwZyEIvaEUyF8xbBymzTaLOofnx5JUk4hbvMZhRH3yMYjTCFj4F12OLaoWosJjw/exec';
+    try {
+      await fetch(WEBHOOK_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body: JSON.stringify(dados) });
+    } catch(e) { console.error('Erro Sheets:', e); }
+  }
+
+  // ─── HELPERS ──────────────────────────────────────
+  function moeda(v) { return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+  function formatarData(d) {
+    const [y,m,day] = d.split('-');
+    return `${day}/${m}/${y}`;
+  }
+  function toast(msg, tipo='success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${tipo} show`;
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // Fechar modal clicando fora
+  document.getElementById('modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal')) fecharModal();
+  });
+
+  // ─── INIT ─────────────────────────────────────────
+  renderizarTabela();
+  atualizarResumo();
+  atualizarGrafico();
+</script>
 </body>
 </html>
